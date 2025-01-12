@@ -78,6 +78,8 @@ namespace Assimp  {
 // -------------------------------------------------------------------------------------------
 class C4DImporter : public BaseImporter, public LogFunctions<C4DImporter> {
 public:
+    C4DImporter() = default;
+    ~C4DImporter() override = default;
     bool CanRead( const std::string& pFile, IOSystem*, bool checkSig) const override;
 
 protected:

@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2024, assimp team
 
 All rights reserved.
 
@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FBXCommon.h" // FBX::TransformInheritance
 
 #include <assimp/types.h>
-//#include <assimp/material.h>
 #include <assimp/StreamWriter.h> // StreamWriterLE
 #include <assimp/Exceptional.h> // DeadlyExportError
 

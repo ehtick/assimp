@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
+Copyright (c) 2006-2024, assimp team
 
 All rights reserved.
 
@@ -105,10 +105,6 @@ ObjFileMtlImporter::ObjFileMtlImporter(std::vector<char> &buffer,
     }
     load();
 }
-
-// -------------------------------------------------------------------
-//  Destructor
-ObjFileMtlImporter::~ObjFileMtlImporter() = default;
 
 // -------------------------------------------------------------------
 //  Loads the material description
@@ -343,7 +339,7 @@ void ObjFileMtlImporter::createMaterial() {
         }
     }
 
-    name = trim_whitespaces(name);
+    name = ai_trim(name);
 
     std::map<std::string, ObjFile::Material *>::iterator it = m_pModel->mMaterialMap.find(name);
     if (m_pModel->mMaterialMap.end() == it) {

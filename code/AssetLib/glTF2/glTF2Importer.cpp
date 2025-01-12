@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2024, assimp team
 
 All rights reserved.
 
@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PostProcessing/MakeVerboseFormat.h"
 
 #if !defined(ASSIMP_BUILD_NO_EXPORT)
-#include "AssetLib/glTF2/glTF2AssetWriter.h"
+#   include "AssetLib/glTF2/glTF2AssetWriter.h"
 #endif
 
 #include <assimp/CreateAnimMesh.h>
@@ -82,7 +82,7 @@ struct Tangent {
 // glTF2Importer
 //
 
-static const aiImporterDesc desc = {
+static constexpr aiImporterDesc desc = {
     "glTF2 Importer",
     "",
     "",
@@ -92,7 +92,7 @@ static const aiImporterDesc desc = {
     0,
     0,
     0,
-    "gltf glb"
+    "gltf glb vrm"
 };
 
 glTF2Importer::glTF2Importer() :
@@ -106,7 +106,7 @@ const aiImporterDesc *glTF2Importer::GetInfo() const {
 
 bool glTF2Importer::CanRead(const std::string &filename, IOSystem *pIOHandler, bool checkSig) const {
     const std::string extension = GetExtension(filename);
-    if (!checkSig && (extension != "gltf") && (extension != "glb")) {
+    if (!checkSig && (extension != "gltf") && (extension != "glb") && (extension != "vrm")) {
         return false;
     }
 
@@ -161,7 +161,7 @@ static void SetMaterialTextureProperty(std::vector<int> &embeddedTexIdxs, Asset 
         if (texIdx != -1) { // embedded
             // setup texture reference string (copied from ColladaLoader::FindFilenameForEffectTexture)
             uri.data[0] = '*';
-            uri.length = 1 + ASSIMP_itoa10(uri.data + 1, MAXLEN - 1, texIdx);
+            uri.length = 1 + ASSIMP_itoa10(uri.data + 1, AI_MAXLEN - 1, texIdx);
         }
 
         mat->AddProperty(&uri, AI_MATKEY_TEXTURE(texType, texSlot));
@@ -288,8 +288,8 @@ static aiMaterial *ImportMaterial(std::vector<int> &embeddedTexIdxs, Asset &r, M
             if (std::memcmp(specular.specularColorFactor, defaultSpecularColorFactor, sizeof(glTFCommon::vec3)) != 0 || specular.specularFactor != 0.0f) {
                 SetMaterialColorProperty(r, specular.specularColorFactor, aimat, AI_MATKEY_COLOR_SPECULAR);
                 aimat->AddProperty(&specular.specularFactor, 1, AI_MATKEY_SPECULAR_FACTOR);
-                SetMaterialTextureProperty(embeddedTexIdxs, r, specular.specularTexture, aimat, aiTextureType_SPECULAR);
-                SetMaterialTextureProperty(embeddedTexIdxs, r, specular.specularColorTexture, aimat, aiTextureType_SPECULAR);
+                SetMaterialTextureProperty(embeddedTexIdxs, r, specular.specularTexture, aimat, aiTextureType_SPECULAR, 0);
+                SetMaterialTextureProperty(embeddedTexIdxs, r, specular.specularColorTexture, aimat, aiTextureType_SPECULAR, 1);
             }
         }
         // pbrSpecularGlossiness
@@ -539,7 +539,7 @@ void glTF2Importer::ImportMeshes(glTF2::Asset &r) {
             if (mesh.primitives.size() > 1) {
                 ai_uint32 &len = aim->mName.length;
                 aim->mName.data[len] = '-';
-                len += 1 + ASSIMP_itoa10(aim->mName.data + len + 1, unsigned(MAXLEN - len - 1), p);
+                len += 1 + ASSIMP_itoa10(aim->mName.data + len + 1, unsigned(AI_MAXLEN - len - 1), p);
             }
 
             switch (prim.mode) {
@@ -1055,7 +1055,8 @@ static void BuildVertexWeightMapping(Mesh::Primitive &primitive, std::vector<std
             attr.joint[j]->ExtractData(indices16[j], vertexRemappingTablePtr);
         }
     }
-    //
+    
+    // No indices are an invalid usecase
     if (nullptr == indices8 && nullptr == indices16) {
         // Something went completely wrong!
         ai_assert(false);
@@ -1456,7 +1457,8 @@ std::unordered_map<unsigned int, AnimationSamplers> GatherSamplers(Animation &an
         }
 
         if (animsampler.input->count > animsampler.output->count) {
-            ASSIMP_LOG_WARN("Animation ", anim.name, ": Number of keyframes in sampler input ", animsampler.input->count, " exceeds number of keyframes in sampler output ", animsampler.output->count);
+            ASSIMP_LOG_WARN("Animation ", anim.name, ": Number of keyframes in sampler input ", animsampler.input->count,
+                            " exceeds number of keyframes in sampler output ", animsampler.output->count);
             continue;
         }
 
@@ -1630,7 +1632,7 @@ void glTF2Importer::ImportEmbeddedTextures(glTF2::Asset &r) {
         if (!img.mimeType.empty()) {
             const char *ext = strchr(img.mimeType.c_str(), '/') + 1;
             if (ext) {
-                if (strcmp(ext, "jpeg") == 0) {
+                if (strncmp(ext, "jpeg", 4) == 0) {
                     ext = "jpg";
                 } else if (strcmp(ext, "ktx2") == 0) { // basisu: ktx remains
                     ext = "kx2";
@@ -1639,9 +1641,9 @@ void glTF2Importer::ImportEmbeddedTextures(glTF2::Asset &r) {
                 }
 
                 size_t len = strlen(ext);
-                if (len <= 3) {
-                    strcpy(tex->achFormatHint, ext);
-                }
+                if (len > 3) len = 3;
+                tex->achFormatHint[3] = '\0';
+                memcpy(tex->achFormatHint, ext, len);
             }
         }
     }

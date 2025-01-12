@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2024, assimp team
 
 All rights reserved.
 
@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AssetLib/glTF/glTFImporter.h"
 #include "AssetLib/glTF/glTFAsset.h"
 #if !defined(ASSIMP_BUILD_NO_EXPORT)
-#include "AssetLib/glTF/glTFAssetWriter.h"
+#   include "AssetLib/glTF/glTFAssetWriter.h"
 #endif
 #include "PostProcessing/MakeVerboseFormat.h"
 
@@ -62,16 +62,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace Assimp;
 using namespace glTF;
 
-//
-// glTFImporter
-//
-
-static const aiImporterDesc desc = {
+static constexpr aiImporterDesc desc = {
     "glTF Importer",
     "",
     "",
     "",
-    aiImporterFlags_SupportTextFlavour | aiImporterFlags_SupportBinaryFlavour | aiImporterFlags_SupportCompressedFlavour | aiImporterFlags_LimitedSupport | aiImporterFlags_Experimental,
+    aiImporterFlags_SupportTextFlavour | 
+        aiImporterFlags_SupportBinaryFlavour | 
+        aiImporterFlags_SupportCompressedFlavour | 
+        aiImporterFlags_LimitedSupport | 
+        aiImporterFlags_Experimental,
     0,
     0,
     0,
@@ -113,7 +113,7 @@ inline void SetMaterialColorProperty(std::vector<int> &embeddedTexIdxs, Asset & 
             if (texIdx != -1) { // embedded
                 // setup texture reference string (copied from ColladaLoader::FindFilenameForEffectTexture)
                 uri.data[0] = '*';
-                uri.length = 1 + ASSIMP_itoa10(uri.data + 1, MAXLEN - 1, texIdx);
+                uri.length = 1 + ASSIMP_itoa10(uri.data + 1, AI_MAXLEN - 1, texIdx);
             }
 
             mat->AddProperty(&uri, _AI_MATKEY_TEXTURE_BASE, texType, 0);
@@ -133,11 +133,8 @@ void glTFImporter::ImportMaterials(glTF::Asset &r) {
         aiMaterial *aimat = mScene->mMaterials[i] = new aiMaterial();
 
         Material &mat = r.materials[i];
-
-        /*if (!mat.name.empty())*/ {
-            aiString str(mat.id /*mat.name*/);
-            aimat->AddProperty(&str, AI_MATKEY_NAME);
-        }
+        aiString str(mat.id);
+        aimat->AddProperty(&str, AI_MATKEY_NAME);
 
         SetMaterialColorProperty(embeddedTexIdxs, r, mat.ambient, aimat, aiTextureType_AMBIENT, AI_MATKEY_COLOR_AMBIENT);
         SetMaterialColorProperty(embeddedTexIdxs, r, mat.diffuse, aimat, aiTextureType_DIFFUSE, AI_MATKEY_COLOR_DIFFUSE);
@@ -246,7 +243,7 @@ void glTFImporter::ImportMeshes(glTF::Asset &r) {
             if (mesh.primitives.size() > 1) {
                 ai_uint32 &len = aim->mName.length;
                 aim->mName.data[len] = '-';
-                len += 1 + ASSIMP_itoa10(aim->mName.data + len + 1, unsigned(MAXLEN - len - 1), p);
+                len += 1 + ASSIMP_itoa10(aim->mName.data + len + 1, unsigned(AI_MAXLEN - len - 1), p);
             }
 
             switch (prim.mode) {
@@ -620,10 +617,6 @@ void glTFImporter::ImportNodes(glTF::Asset &r) {
         }
         mScene->mRootNode = root;
     }
-
-    //if (!mScene->mRootNode) {
-    //  mScene->mRootNode = new aiNode("EMPTY");
-    //}
 }
 
 void glTFImporter::ImportEmbeddedTextures(glTF::Asset &r) {
@@ -635,8 +628,9 @@ void glTFImporter::ImportEmbeddedTextures(glTF::Asset &r) {
             numEmbeddedTexs += 1;
     }
 
-    if (numEmbeddedTexs == 0)
+    if (numEmbeddedTexs == 0) {
         return;
+    }
 
     mScene->mTextures = new aiTexture *[numEmbeddedTexs];
 
@@ -661,12 +655,13 @@ void glTFImporter::ImportEmbeddedTextures(glTF::Asset &r) {
         if (!img.mimeType.empty()) {
             const char *ext = strchr(img.mimeType.c_str(), '/') + 1;
             if (ext) {
-                if (strcmp(ext, "jpeg") == 0) ext = "jpg";
-
-                size_t len = strlen(ext);
-                if (len <= 3) {
-                    strcpy(tex->achFormatHint, ext);
+                if (strncmp(ext, "jpeg", 4) == 0) {
+                    ext = "jpg";
                 }
+                tex->achFormatHint[3] = '\0';
+                size_t len = strlen(ext);
+                if (len > 3) len = 3;
+                memcpy(tex->achFormatHint, ext, len);
             }
         }
     }
